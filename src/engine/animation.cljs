@@ -59,9 +59,10 @@
   (ctx.drawImage image (/ (- image.width) 2) (/ (- image.height) 2))
   (ctx.setTransform 1 0 0 1 0 0))
 
-(defn draw-image-physics [ctx image {{scale :scale} :transform
-                                     {{x :x y :y} :position
-                                      angle :angle} :body}]
+(defn draw-image-physics [ctx image {{{x :x y :y} :position
+                                      angle :angle} :body
+                                     scale :scale}]
+
   (ctx.setTransform scale 0 0 scale x y)
   (ctx.rotate angle)
   (ctx.drawImage image (/ (- image.width) 2) (/ (- image.height) 2))
