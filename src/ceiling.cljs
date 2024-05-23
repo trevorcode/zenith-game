@@ -15,7 +15,7 @@
     (draw-image-physics ctx image ship)))
 
 (defn create []
-  (let [body (matter/Bodies.rectangle 400 0 800 150 {:isStatic true})]
+  (let [body (matter/Bodies.rectangle 400 0 800 150 {:isStatic true :isSensor true})]
     (-> {:type entity
          :body body
          :scale 5})))

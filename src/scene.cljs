@@ -1,19 +1,17 @@
 (ns scene
-  (:require 
-            [gamestate :as gs]
-            [engine.input :as input]
-            [greencap :as greencap]
-            [runguy :as runguy]
-            [rune :as rune]
-            
-            [ceiling :as ceiling]
-            [rope :as rope]
-            ["matter-js" :as matter]))
+  (:require
+   [gamestate :as gs]
+   [engine.input :as input]
+   [greencap :as greencap]
+   [runguy :as runguy]
+   [rune :as rune]
+
+   [ceiling :as ceiling]
+   [rope :as rope]
+   ["matter-js" :as matter]))
 
 (defn scene-draw [scene context]
-  (doseq [ropes (filterv #(= :rope (:type %)) (:objects scene))]
-    (gs/render-entity ropes context))
-  (doseq [game-obj (filterv #(not= :rope (:type %)) (:objects scene))]
+  (doseq [game-obj (sort-by :renderIndex (:objects scene))]
     (gs/render-entity game-obj context))
 
   (let [mousePosition (-> scene :mouse :mouse :position)
@@ -24,32 +22,53 @@
       (context.lineTo (:x mousePosition) (:y mousePosition))
       (context.stroke))))
 
-(defn scene-update [scene dt]
-  (doseq [game-obj (:objects scene)]
-    (gs/update-entity game-obj dt)))
-
 (defn register-obj [scene obj]
   (conj! scene.objects obj)
+  (when (:bodies obj)
+    (matter/Composite.add scene.physics.world (:bodies obj)))
   (when (:body obj)
     (matter/Composite.add scene.physics.world (:body obj))))
 
+(defn scene-update [scene dt]
+  (set! scene.dt (inc scene.dt))
+  (doseq [game-obj (:objects scene)]
+    (gs/update-entity game-obj dt))
+
+  (when (> (* (js/Math.random) 500) 495)
+    (register-obj scene (rune/spawn-rune))))
+
+
+
 
 (defn mouseDown [scene world ev]
-  (let [runes (filterv #(and (contains? % :body)
-                             (= "rune" (get % :type))) scene.objects)
-        runeBodies (mapv #(get % :body) runes)
-        selectedRune (first (filterv #(= (get % :body)
-                                         (first (matter/Query.point runeBodies ev.mouse.position))) runes))]
-    (set! scene.selectedRune selectedRune)
-    (println (matter/Query.point runeBodies ev.mouse.position))))
+  (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
+        clickedObject (first (filterv
+                              #(= (get % :body)
+                                  (first (matter/Query.point objectBodies ev.mouse.position)))
+                              scene.objects))]
+
+    (case (:type clickedObject)
+      :rune (do
+              (set! scene.selectedRune clickedObject))
+      nil)))
 
 (defn mouseUp [scene world ev]
-  (let [ceiling (filterv #(= :ceiling (:type %)) scene.objects)
-        mouseUpOnCeiling? (matter/Query.point (mapv :body ceiling) ev.mouse.position)]
-    (when (not-empty mouseUpOnCeiling?)
-      (register-obj scene (rope/create {:x ev.mouse.position.x
-                                        :y ev.mouse.position.y
-                                        :target scene.selectedRune}))))
+  (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
+        clickedObject (first (filterv
+                              #(= (get % :body)
+                                  (first (matter/Query.point objectBodies ev.mouse.position)))
+                              scene.objects))]
+    (case (:type clickedObject)
+      :rune (do
+              (set! clickedObject.activated (not clickedObject.activated))
+              (println clickedObject))
+
+      :ceiling (when scene.selectedRune
+                 (register-obj scene (rope/create {:x ev.mouse.position.x
+                                                   :y ev.mouse.position.y
+                                                   :target scene.selectedRune})))
+      nil))
+
   (set! scene.selectedRune nil))
 
 (defn scene1 []
@@ -63,8 +82,7 @@
                  (matter/Render.run render)
                  (matter/Runner.run (matter/Runner.create) engine)
                  engine)
-        objects (into [
-                       (rune/create {:x 300 :y 50 :rotation 10})
+        objects (into [(rune/create {:x 300 :y 50 :rotation 10})
                        (rune/create {:x 400 :y 80 :rotation 90})
                        (runguy/create {:x 180 :y 180})
                        (ceiling/create)]
@@ -78,7 +96,9 @@
                                                        {:mouse mouse
                                                         :constraint {:stiffness 0}})
         scene {:type :scene
+               :dt 0
                :objects []
+               :score 0
                :mouse mouseConstraint
                :physics engine}]
 
@@ -87,6 +107,4 @@
     (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene engine.world))
     (doseq [obj objects]
       (register-obj scene obj))
-    #_(matter/Composite.add scene.physics.world (mapv :body (filterv #(contains? % :body) (:objects scene))))
-    #_(matter/Composite.add scene.physics.world (into [] (mapcat (comp vals :bodies) (filterv #(contains? % :bodies) (:objects scene)))))
     scene))

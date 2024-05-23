@@ -20,7 +20,7 @@
 
 (def-method render-entity :rope [{:keys [animation]
                                   :as this} ctx]
-  (let [ropeBodies (get-in this [:body :bodies])]
+  (let [ropeBodies (get-in this [:bodies :bodies])]
     (doseq [rope ropeBodies]
       (animation/draw-animation-physics {:body rope :scale 1.25} animation ctx))))
 
@@ -52,8 +52,10 @@
     (matter/Composites.chain rope 0 0.5 0 -0.5 {:stiffness 0.8
                                                 :length 2})
     (matter/Composite.add rope [constraintA constraintB])
+    (conj! target.ropes rope)
     (-> {:type :rope
-         :body rope
+         :bodies rope
+         :renderIndex 4
          :scale 2}
         (animation/play-animation :rope))))
 
