@@ -8,5 +8,7 @@
                       :bg {:type :single
                            :url "assets/bg.jpg"}
                       :runguy {:type :sheet
-                               :url "assets/runguy.jpg"}})
+                               :url "assets/runguy.jpg"}
+                      :runesheet {:type :sheet
+                                  :url "assets/runes.png"}})
 

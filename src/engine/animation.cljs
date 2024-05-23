@@ -52,6 +52,19 @@
     (ctx.setTransform 1 0 0 1 0 0)
     (step-animation animation)))
 
+(defn draw-animation-physics
+  [{{{x :x y :y} :position
+     angle :angle} :body
+    scale :scale}
+   {:keys [sheet] :as animation}
+   ctx]
+  (let [image (get-in images [sheet :image])]
+    (ctx.setTransform scale 0 0 scale x y)
+    (ctx.rotate angle)
+    (draw-frame ctx image animation)
+    (ctx.setTransform 1 0 0 1 0 0)
+    (step-animation animation)))
+
 (defn draw-image [ctx image {:keys [x y rotation scale]}]
   (ctx.setTransform scale 0 0 scale x y)
   (when rotation
