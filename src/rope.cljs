@@ -3,7 +3,7 @@
   (:require [engine.animation :refer [draw-image draw-image-physics] :as animation]
             [engine.assets :as assets]
             [gamestate :refer [render-entity update-entity]]
-            [transform :as transform]
+            [util :as util]
             ["matter-js" :as matter]))
 (assets/register-animations
  {:rope {:sheet :runesheet
@@ -26,10 +26,10 @@
   (let [ropeBodies (get-in this [:bodies :bodies])]
     (doseq [rope ropeBodies]
       (when successfulComboTimer
-        (set! ctx.filter (str 
+        (set! ctx.filter (str
                           "brightness("
-                              (+ 1.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
-                              ") 
+                          (+ 1.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
+                          ") 
                                opacity(" this.successfulComboTimer "%)")))
       (animation/draw-animation-physics {:body rope :scale 1.25} animation ctx)
       (set! ctx.filter "none"))))
@@ -40,12 +40,13 @@
         (filterv #(not= (:id %) id) scene.objects)))
 
 (defn create [{:keys [x y target]}]
-  (let [group (matter/Body.nextGroup true)
-        randomLength (+ (* (js/Math.random) 7) 1)
+  (let [randomLength (+ (int
+                         (/ (util/distance x y target.body.position.x target.body.position.y) 50))
+                        1)
         ropeBodies (matter/Composites.stack x y 1 randomLength 10 10
                                             (fn [x1 y1]
                                               (matter/Bodies.rectangle
-                                               x1 y1 5 30 {:isSensor true})))
+                                               x1 y1 5 30 {:collisionFilter {:mask 0}})))
         constraintA (matter/Constraint.create {:bodyB (first ropeBodies.bodies)
                                                :pointB {:x 0 :y -25}
                                                :pointA {:x (-> ropeBodies :bodies first :position :x)

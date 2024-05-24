@@ -115,11 +115,10 @@
 
   (let [engine (let [engine (matter/Engine.create)
                      ground (matter/Bodies.rectangle 400 610 810 90 {:isStatic true})
-                     render (matter/Render.create {:element js/document.body
+                     #_#_render (matter/Render.create {:element js/document.body
                                                    :engine engine})]
                  #_(matter/Composite.add engine.world ground)
-
-                 (matter/Render.run render)
+                 #_(matter/Render.run render)
                  (matter/Runner.run (matter/Runner.create) engine)
                  engine)
         objects (into [(rune/create {:x 300 :y 50 :rotation 10})
