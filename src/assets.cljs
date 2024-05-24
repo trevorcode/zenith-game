@@ -1,17 +1,12 @@
 (ns assets
   (:require [engine.assets :as ea]))
 
-(def unloaded-images {:ship {:type :single
-                             :url "assets/ship.png"}
-                      :greencap {:type :sheet
-                                 :url "assets/greencap.png"}
+(def unloaded-images {:heart {:type :single
+                              :url "assets/heart.png"}
                       :bg {:type :single
-
                            :url "assets/background.png"}
                       :banner {:type :single
-                           :url "assets/banner.png"}
-                      :runguy {:type :sheet
-                               :url "assets/runguy.jpg"}
+                               :url "assets/banner.png"}
                       :runesheet {:type :sheet
                                   :url "assets/runes.png"}})
 

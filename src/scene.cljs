@@ -10,13 +10,25 @@
    ["matter-js" :as matter]
    [engine.animation :as animation]))
 
+(defn draw-heart [ctx x y]
+  (let [image (get-in assets/images [:heart :image])]
+    (ctx.setTransform 3 0 0 3 x y)
+    (set! ctx.filter "brightness(1.7) saturate(50%) contrast(150%)
+                      drop-shadow(0px 0px 10px black) opacity(90%)")
+    (ctx.drawImage image (/ (- image.width) 2) (/ (- image.height) 2))
+    (ctx.setTransform 1 0 0 1 0 0)
+    (set! ctx.filter "none")))
+
 (defn draw-life [scene context]
-  (set! context.font "32px serif")
-  (context.fillText (str "Lives " scene.lives) 10 100))
+  (doseq [i (range scene.lives)]
+    (draw-heart context (+ (* i 30) 20) (- (get-in gs/game-state [:canvas :height]) 20))))
 
 (defn draw-score [scene context]
-  (set! context.font "32px serif")
-  (context.fillText (str "Score: " scene.score) 10 50))
+  (set! context.font "24px Arial")
+  (set! context.lineWidth 4)
+  (set! context.strokeStyle "black")
+  (context.strokeText (str "Score: " scene.score) 5 (- (get-in gs/game-state [:canvas :height]) 40))
+  (context.fillText (str "Score: " scene.score) 5 (- (get-in gs/game-state [:canvas :height]) 40)))
 
 (defn scene-draw [scene context]
   (animation/draw-image context (get-in assets/images [:bg :image]) {:x 400 :y 400 :scale 1.7 :rotation 0})
@@ -26,6 +38,8 @@
   (let [mousePosition (-> scene :mouse :mouse :position)
         selectedRunePos (-> scene :selectedRune :body :position)]
     (when selectedRunePos
+      (set! context.lineWidth 5)
+      (set! context.strokeStyle "black")
       (context.beginPath)
       (context.moveTo (:x selectedRunePos) (:y selectedRunePos))
       (context.lineTo (:x mousePosition) (:y mousePosition))
@@ -108,15 +122,28 @@
                                                      :y ev.mouse.position.y
                                                      :target scene.selectedRune})))
         nil)))
-
   (set! scene.selectedRune nil))
+
+(defn mouseMove [scene ev]
+  (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
+        hoveredObjects (filterv
+                        (fn [obj]
+                          (some #(= % (:body obj))
+                                (matter/Query.point objectBodies ev.mouse.position)))
+                        scene.objects)]
+
+    (doseq [hoveredObject hoveredObjects]
+      (case (:type hoveredObject)
+        :rune (set! hoveredObject.hoverTimer 100)
+
+        nil))))
 
 (defn scene1 []
 
   (let [engine (let [engine (matter/Engine.create)
                      ground (matter/Bodies.rectangle 400 610 810 90 {:isStatic true})
                      #_#_render (matter/Render.create {:element js/document.body
-                                                   :engine engine})]
+                                                       :engine engine})]
                  #_(matter/Composite.add engine.world ground)
                  #_(matter/Render.run render)
                  (matter/Runner.run (matter/Runner.create) engine)
@@ -141,6 +168,7 @@
     (matter/Composite.add engine.world mouseConstraint)
     (matter/Events.on mouseConstraint "mousedown" (partial mouseDown scene engine.world))
     (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene engine.world))
+    (matter/Events.on mouseConstraint "mousemove" (partial mouseMove scene))
     (doseq [obj objects]
       (register-obj scene obj))
     scene))

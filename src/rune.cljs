@@ -53,7 +53,6 @@
 (defn set-successful [rune]
   (set! rune.successfulComboTimer 100)
   (doseq [rope rune.ropes]
-    (println rope)
     (set! rope.successfulComboTimer 100))
   (set! rune.body.collisionFilter.mask 0)
   (set! rune.activated false))
@@ -68,7 +67,11 @@
   (set! scene.objects
         (filterv #(not= (:id %) id) scene.objects)))
 
-(def-method update-entity :rune [{:keys [body id wrongChoiceTimer successfulComboTimer] :as rune} dt]
+(def-method update-entity :rune [{:keys [body
+                                         id
+                                         wrongChoiceTimer
+                                         successfulComboTimer
+                                         hoverTimer] :as rune} dt]
   (let [gs gamestate/game-state
         scene gs.currentScene
         heightBuffer 300]
@@ -86,7 +89,12 @@
     (when successfulComboTimer
       (if (> successfulComboTimer 0)
         (set! rune.successfulComboTimer (dec successfulComboTimer))
-        (destroy-rune scene rune)))))
+        (destroy-rune scene rune)))
+
+    (when hoverTimer
+      (if (> hoverTimer 0)
+        (set! rune.hoverTimer (dec hoverTimer))
+        (set! rune.hoverTimer nil)))))
 
 (def-method render-entity :rune [{:keys [animation]
                                   :as this} ctx]
@@ -110,6 +118,14 @@
                               saturate(100%) hue-rotate(240deg) contrast(150%)
                               opacity(" this.successfulComboTimer "%)
                           drop-shadow(0px 0px 20px white)"))
+        (animation/draw-animation-physics this animation ctx)
+        (set! ctx.filter "none"))
+
+
+    (:hoverTimer this)
+    (do (set! ctx.filter (str "drop-shadow(0px 0px "
+                              (/ this.hoverTimer 5)
+                              "px white)"))
         (animation/draw-animation-physics this animation ctx)
         (set! ctx.filter "none"))
 

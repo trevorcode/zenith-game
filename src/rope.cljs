@@ -5,6 +5,7 @@
             [gamestate :refer [render-entity update-entity]]
             [util :as util]
             ["matter-js" :as matter]))
+
 (assets/register-animations
  {:rope {:sheet :runesheet
          :height 32
@@ -16,8 +17,8 @@
          :columns 2
          :cells [4]
          :loop false}})
-(def-method update-entity :rope [{:keys [successfulComboTimer] :as rope} dt]
 
+(def-method update-entity :rope [{:keys [successfulComboTimer] :as rope} dt]
   (when successfulComboTimer
     (set! rope.successfulComboTimer (dec successfulComboTimer))))
 
