@@ -71,9 +71,11 @@
 (def-method update-entity :rune [{:keys [body id wrongChoiceTimer successfulComboTimer] :as rune} dt]
   (let [gs gamestate/game-state
         scene gs.currentScene
-        heightBuffer 200]
+        heightBuffer 300]
     (when (and (pos? body.velocity.y)
                (> body.position.y (+ heightBuffer gs.canvas.height)))
+      (when (not successfulComboTimer)
+        (set! scene.lives (dec scene.lives)))
       (destroy-rune scene rune))
 
     (when wrongChoiceTimer

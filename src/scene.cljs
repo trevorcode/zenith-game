@@ -52,18 +52,18 @@
   (let [activatedRunes (filterv #(and (= :rune (:type %))
                                       (:activated %)) scene.objects)
         runetypes  (mapv :runetype activatedRunes)]
-    (println runetypes)
     (when (>= (count activatedRunes) 3)
       (cond
         (= 1 (count (set runetypes)))
         (do
-          (set! scene.score (inc scene.score))
+          (set! scene.score (+ scene.score 3))
           (doseq [rune activatedRunes]
             (rune/set-successful rune)))
 
         (and (= 4 (count activatedRunes))
              (= (count activatedRunes) (count (set runetypes))))
         (do
+          (set! scene.score (+ scene.score 6))
           (set! scene.lives (inc scene.lives))
           (doseq [rune activatedRunes]
             (rune/set-successful rune)))
@@ -73,10 +73,7 @@
 
         :else (doseq [rune activatedRunes]
                 (set! rune.wrongChoiceTimer 50)
-                (set! rune.activated false)))
-
-
-      (println (mapv :runetype activatedRunes)))))
+                (set! rune.activated false))))))
 
 
 (defn mouseDown [scene world ev]
@@ -120,7 +117,7 @@
                      ground (matter/Bodies.rectangle 400 610 810 90 {:isStatic true})
                      render (matter/Render.create {:element js/document.body
                                                    :engine engine})]
-                 (matter/Composite.add engine.world ground)
+                 #_(matter/Composite.add engine.world ground)
 
                  (matter/Render.run render)
                  (matter/Runner.run (matter/Runner.create) engine)
@@ -128,13 +125,7 @@
         objects (into [(rune/create {:x 300 :y 50 :rotation 10})
                        (rune/create {:x 400 :y 80 :rotation 90})
                        (rune/create {:x 450 :y 80 :rotation 90})
-                       #_(runguy/create {:x 180 :y 180})
-                       (ceiling/create)]
-                      #_(take 2 (repeatedly
-                                 #(greencap/create
-                                   {:x (* (js/Math.random) 350)
-                                    :y (* (js/Math.random) 350)
-                                    :rotation (* (js/Math.random) 350)}))))
+                       (ceiling/create)])
         mouse (matter/Mouse.create (:canvas gs/game-state))
         mouseConstraint (matter/MouseConstraint.create engine
                                                        {:mouse mouse
