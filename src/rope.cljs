@@ -16,13 +16,23 @@
          :columns 2
          :cells [4]
          :loop false}})
-(def-method update-entity :rope [{:keys [transform]} dt])
+(def-method update-entity :rope [{:keys [successfulComboTimer] :as rope} dt]
 
-(def-method render-entity :rope [{:keys [animation]
+  (when successfulComboTimer
+    (set! rope.successfulComboTimer (dec successfulComboTimer))))
+
+(def-method render-entity :rope [{:keys [animation successfulComboTimer]
                                   :as this} ctx]
   (let [ropeBodies (get-in this [:bodies :bodies])]
     (doseq [rope ropeBodies]
-      (animation/draw-animation-physics {:body rope :scale 1.25} animation ctx))))
+      (when successfulComboTimer
+        (set! ctx.filter (str 
+                          "brightness("
+                              (+ 1.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
+                              ") 
+                               opacity(" this.successfulComboTimer "%)")))
+      (animation/draw-animation-physics {:body rope :scale 1.25} animation ctx)
+      (set! ctx.filter "none"))))
 
 (defn destroy-rope [scene {:keys [id bodies] :as rope}]
   (matter/Composite.remove scene.physics.world bodies true)

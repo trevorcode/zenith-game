@@ -2,15 +2,24 @@
   (:require
    [gamestate :as gs]
    [engine.input :as input]
-   [greencap :as greencap]
-   [runguy :as runguy]
+   [engine.assets :as assets]
    [rune :as rune]
 
    [ceiling :as ceiling]
    [rope :as rope]
-   ["matter-js" :as matter]))
+   ["matter-js" :as matter]
+   [engine.animation :as animation]))
+
+(defn draw-life [scene context]
+  (set! context.font "32px serif")
+  (context.fillText (str "Lives " scene.lives) 10 100))
+
+(defn draw-score [scene context]
+  (set! context.font "32px serif")
+  (context.fillText (str "Score: " scene.score) 10 50))
 
 (defn scene-draw [scene context]
+  (animation/draw-image context (get-in assets/images [:bg :image]) {:x 400 :y 400 :scale 1.7 :rotation 0})
   (doseq [game-obj (sort-by :renderIndex (:objects scene))]
     (gs/render-entity game-obj context))
 
@@ -20,7 +29,9 @@
       (context.beginPath)
       (context.moveTo (:x selectedRunePos) (:y selectedRunePos))
       (context.lineTo (:x mousePosition) (:y mousePosition))
-      (context.stroke))))
+      (context.stroke)))
+  (draw-life scene context)
+  (draw-score scene context))
 
 (defn register-obj [scene obj]
   (conj! scene.objects obj)
@@ -34,7 +45,7 @@
   (doseq [game-obj (:objects scene)]
     (gs/update-entity game-obj dt))
 
-  (when (> (* (js/Math.random) 1000) 998)
+  (when (> (* (js/Math.random) 1000) 997)
     (register-obj scene (rune/spawn-rune))))
 
 (defn calculate-points [scene]
@@ -45,12 +56,23 @@
     (when (>= (count activatedRunes) 3)
       (cond
         (= 1 (count (set runetypes)))
-        (println "Gain 1 point")
+        (do
+          (set! scene.score (inc scene.score))
+          (doseq [rune activatedRunes]
+            (rune/set-successful rune)))
+
+        (and (= 4 (count activatedRunes))
+             (= (count activatedRunes) (count (set runetypes))))
+        (do
+          (set! scene.lives (inc scene.lives))
+          (doseq [rune activatedRunes]
+            (rune/set-successful rune)))
 
         (= (count activatedRunes) (count (set runetypes)))
-        (println "Gain 1 heart")
+        nil
 
         :else (doseq [rune activatedRunes]
+                (set! rune.wrongChoiceTimer 50)
                 (set! rune.activated false)))
 
 
@@ -81,6 +103,7 @@
       (case (:type clickedObject)
         :rune (do
                 (set! clickedObject.activated (not clickedObject.activated))
+                (matter/Body.setVelocity clickedObject.body {:x 0 :y -2})
                 (calculate-points scene))
 
         :ceiling (when scene.selectedRune
@@ -97,13 +120,14 @@
                      ground (matter/Bodies.rectangle 400 610 810 90 {:isStatic true})
                      render (matter/Render.create {:element js/document.body
                                                    :engine engine})]
-                 #_(matter/Composite.add engine.world ground)
+                 (matter/Composite.add engine.world ground)
 
                  (matter/Render.run render)
                  (matter/Runner.run (matter/Runner.create) engine)
                  engine)
         objects (into [(rune/create {:x 300 :y 50 :rotation 10})
                        (rune/create {:x 400 :y 80 :rotation 90})
+                       (rune/create {:x 450 :y 80 :rotation 90})
                        #_(runguy/create {:x 180 :y 180})
                        (ceiling/create)]
                       #_(take 2 (repeatedly
@@ -119,6 +143,7 @@
                :dt 0
                :objects []
                :score 0
+               :lives 3
                :mouse mouseConstraint
                :physics engine}]
 

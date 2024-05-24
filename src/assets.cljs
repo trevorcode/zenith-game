@@ -6,7 +6,10 @@
                       :greencap {:type :sheet
                                  :url "assets/greencap.png"}
                       :bg {:type :single
-                           :url "assets/bg.jpg"}
+
+                           :url "assets/background.png"}
+                      :banner {:type :single
+                           :url "assets/banner.png"}
                       :runguy {:type :sheet
                                :url "assets/runguy.jpg"}
                       :runesheet {:type :sheet
