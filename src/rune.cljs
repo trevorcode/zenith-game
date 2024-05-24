@@ -66,15 +66,16 @@
         heightBuffer 200]
     (when (and (pos? body.velocity.y)
                (> body.position.y (+ heightBuffer gs.canvas.height)))
-      (destroy-rune scene rune)
-      (println scene))
-
-    (when (:activated rune)
       (destroy-rune scene rune))))
 
 (def-method render-entity :rune [{:keys [animation]
                                   :as this} ctx]
-  (animation/draw-animation-physics this animation ctx))
+  (if (:activated this)
+    (do (set! ctx.filter "brightness(1.7) saturate(100%) hue-rotate(130deg) contrast(150%)
+                          drop-shadow(0px 0px 20px yellow)")
+        (animation/draw-animation-physics this animation ctx)
+        (set! ctx.filter "none"))
+    (animation/draw-animation-physics this animation ctx)))
 
 (def rune-type {0 :earth
                 1 :wind
@@ -86,7 +87,7 @@
     (-> {:type :rune
          :id (* 200000 (js/Math.random))
          :body body
-         #_#_:runetype (get rune-type runetype)
+         :runetype (get rune-type (or runetype 0))
          :activated false
          :ropes []
          :renderIndex 5
@@ -98,9 +99,8 @@
         height gamestate/game-state.canvas.height
         rune (create {:x (* (js/Math.random) width)
                       :y (- height 100)
-                      :runetype (int (* (js/Math.random) 3))})
+                      :runetype (int (* (js/Math.random) 4))})
         vx (/ (- (/ width 2) rune.body.position.x) (/ width 21))]
-    (println (int (* (js/Math.random) 3)))
 
     (matter/Body.setVelocity rune.body {:x vx :y -13})
     rune))

@@ -37,7 +37,24 @@
   (when (> (* (js/Math.random) 1000) 998)
     (register-obj scene (rune/spawn-rune))))
 
+(defn calculate-points [scene]
+  (let [activatedRunes (filterv #(and (= :rune (:type %))
+                                      (:activated %)) scene.objects)
+        runetypes  (mapv :runetype activatedRunes)]
+    (println runetypes)
+    (when (>= (count activatedRunes) 3)
+      (cond
+        (= 1 (count (set runetypes)))
+        (println "Gain 1 point")
 
+        (= (count activatedRunes) (count (set runetypes)))
+        (println "Gain 1 heart")
+
+        :else (doseq [rune activatedRunes]
+                (set! rune.activated false)))
+
+
+      (println (mapv :runetype activatedRunes)))))
 
 
 (defn mouseDown [scene world ev]
@@ -64,7 +81,7 @@
       (case (:type clickedObject)
         :rune (do
                 (set! clickedObject.activated (not clickedObject.activated))
-                (println clickedObject))
+                (calculate-points scene))
 
         :ceiling (when scene.selectedRune
                    (register-obj scene (rope/create {:x ev.mouse.position.x
@@ -87,13 +104,13 @@
                  engine)
         objects (into [(rune/create {:x 300 :y 50 :rotation 10})
                        (rune/create {:x 400 :y 80 :rotation 90})
-                       (runguy/create {:x 180 :y 180})
+                       #_(runguy/create {:x 180 :y 180})
                        (ceiling/create)]
-                      (take 2 (repeatedly
-                               #(greencap/create
-                                 {:x (* (js/Math.random) 350)
-                                  :y (* (js/Math.random) 350)
-                                  :rotation (* (js/Math.random) 350)}))))
+                      #_(take 2 (repeatedly
+                                 #(greencap/create
+                                   {:x (* (js/Math.random) 350)
+                                    :y (* (js/Math.random) 350)
+                                    :rotation (* (js/Math.random) 350)}))))
         mouse (matter/Mouse.create (:canvas gs/game-state))
         mouseConstraint (matter/MouseConstraint.create engine
                                                        {:mouse mouse
