@@ -34,7 +34,7 @@
   (doseq [game-obj (:objects scene)]
     (gs/update-entity game-obj dt))
 
-  (when (> (* (js/Math.random) 500) 495)
+  (when (> (* (js/Math.random) 1000) 998)
     (register-obj scene (rune/spawn-rune))))
 
 
@@ -42,32 +42,35 @@
 
 (defn mouseDown [scene world ev]
   (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
-        clickedObject (first (filterv
-                              #(= (get % :body)
-                                  (first (matter/Query.point objectBodies ev.mouse.position)))
-                              scene.objects))]
-
-    (case (:type clickedObject)
-      :rune (do
-              (set! scene.selectedRune clickedObject))
-      nil)))
+        clickedObjects (filterv
+                        (fn [obj]
+                          (some #(= % (:body obj))
+                                (matter/Query.point objectBodies ev.mouse.position)))
+                        scene.objects)]
+    (doseq [clickedObject clickedObjects]
+      (case (:type clickedObject)
+        :rune (do
+                (set! scene.selectedRune clickedObject))
+        nil))))
 
 (defn mouseUp [scene world ev]
   (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
-        clickedObject (first (filterv
-                              #(= (get % :body)
-                                  (first (matter/Query.point objectBodies ev.mouse.position)))
-                              scene.objects))]
-    (case (:type clickedObject)
-      :rune (do
-              (set! clickedObject.activated (not clickedObject.activated))
-              (println clickedObject))
+        clickedObjects (filterv
+                        (fn [obj]
+                          (some #(= % (:body obj))
+                                (matter/Query.point objectBodies ev.mouse.position)))
+                        scene.objects)]
+    (doseq [clickedObject clickedObjects]
+      (case (:type clickedObject)
+        :rune (do
+                (set! clickedObject.activated (not clickedObject.activated))
+                (println clickedObject))
 
-      :ceiling (when scene.selectedRune
-                 (register-obj scene (rope/create {:x ev.mouse.position.x
-                                                   :y ev.mouse.position.y
-                                                   :target scene.selectedRune})))
-      nil))
+        :ceiling (when scene.selectedRune
+                   (register-obj scene (rope/create {:x ev.mouse.position.x
+                                                     :y ev.mouse.position.y
+                                                     :target scene.selectedRune})))
+        nil)))
 
   (set! scene.selectedRune nil))
 
@@ -77,7 +80,7 @@
                      ground (matter/Bodies.rectangle 400 610 810 90 {:isStatic true})
                      render (matter/Render.create {:element js/document.body
                                                    :engine engine})]
-                 (matter/Composite.add engine.world ground)
+                 #_(matter/Composite.add engine.world ground)
 
                  (matter/Render.run render)
                  (matter/Runner.run (matter/Runner.create) engine)
@@ -102,6 +105,7 @@
                :mouse mouseConstraint
                :physics engine}]
 
+    (set! engine.gravity.y 0.4)
     (matter/Composite.add engine.world mouseConstraint)
     (matter/Events.on mouseConstraint "mousedown" (partial mouseDown scene engine.world))
     (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene engine.world))
