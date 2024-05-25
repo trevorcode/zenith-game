@@ -7,9 +7,6 @@
 (def-method render-entity :image [{:keys [x y image scale filter
                                           columns cell width height]
                                    :as obj} ctx]
-
-  (when (not= filter "none")
-    (set! ctx.filter filter))
   (animation/draw-image-cell ctx
                              (:image image)
                              {:x x
@@ -19,8 +16,8 @@
                               :columns columns
                               :cell cell
                               :width width
-                              :height height})
-  (set! ctx.filter "none"))
+                              :height height
+                              :filter filter}))
 
 (defn create [{:keys [x y imageKeyword scale columns cell width height filter]}]
   (let [image (get-in assets/images [imageKeyword])]

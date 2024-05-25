@@ -54,8 +54,6 @@
   (let [canvas (create-canvas! "2" 800 600)
         context (create-context! canvas)]
 
-    (input/subscribe-to-keyboard-events gs/game-state)
-
     (set! gs/game-state.canvas canvas)
     (set! gs/game-state.context context)
     (-> (js/document.querySelector "#app")

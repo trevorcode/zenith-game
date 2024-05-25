@@ -7,49 +7,27 @@
             [util :as util]
             ["matter-js" :as matter]))
 
-(assets/register-animations
- {:rune0 {:sheet :runesheet
-          :height 32
-          :width 32
-          :duration 10
-          :durationCounter 0
-          :frame 0
-          :rows 3
-          :columns 2
-          :cells [0]
-          :loop false}
+(def rune-type {0 :earth
+                1 :wind
+                2 :tree
+                3 :rain})
 
-  :rune1 {:sheet :runesheet
-          :height 32
-          :width 32
-          :duration 10
-          :durationCounter 0
-          :frame 0
-          :rows 3
-          :columns 2
-          :cells [1]
-          :loop false}
-  :rune2 {:sheet :runesheet
-          :height 32
-          :width 32
-          :duration 10
-          :durationCounter 0
-          :frame 0
-          :rows 3
-          :columns 2
-          :cells [2]
-          :loop false}
+(defn rune-type-cell [runetype]
+  (get {:earth 0
+        :wind 1
+        :tree 2
+        :rain 3}
+       runetype))
 
-  :rune3 {:sheet :runesheet
-          :height 32
-          :width 32
-          :duration 10
-          :durationCounter 0
-          :frame 0
-          :rows 3
-          :columns 2
-          :cells [3]
-          :loop false}})
+(def rune-hue-rotation {0 340
+                        1 85
+                        2 180
+                        3 280})
+
+(def rune-saturation {0 0.9
+                      1 0.7
+                      2 1.0
+                      3 1.0})
 
 (defn set-successful [rune]
   (set! rune.successfulComboTimer 100)
@@ -69,7 +47,6 @@
         (filterv #(not= (:id %) id) scene.objects)))
 
 (def-method update-entity :rune [{:keys [body
-                                         id
                                          wrongChoiceTimer
                                          successfulComboTimer
                                          hoverTimer] :as rune} dt]
@@ -98,49 +75,43 @@
         (set! rune.hoverTimer (dec hoverTimer))
         (set! rune.hoverTimer nil)))))
 
-(def-method render-entity :rune [{:keys [animation]
+(def-method render-entity :rune [{:keys [runetype]
                                   :as this} ctx]
-  (cond
-    (:activated this)
-    (set! ctx.filter "brightness(1.7) saturate(100%) hue-rotate(130deg) contrast(150%)
-                          drop-shadow(0px 0px 20px yellow)")
 
-    (:wrongChoiceTimer this)
-    (set! ctx.filter "brightness(1.0) saturate(100%) hue-rotate(65deg) contrast(150%)
-                          drop-shadow(0px 0px 0px red)")
+  (let [runetype-num (rune-type-cell runetype)
+        baseFilter (str "hue-rotate(" (get rune-hue-rotation runetype-num) "deg) "
+                        "saturate(" (get rune-saturation runetype-num) ")")
+        runeFilter
+        (cond (:activated this)
+              "brightness(1.7) saturate(100%) hue-rotate(130deg) 
+               contrast(150%) drop-shadow(0px 0px 20px yellow)"
 
-    (:successfulComboTimer this)
-    (set! ctx.filter (str "brightness("
-                          (+ 0.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
-                          ") saturate(100%) hue-rotate(240deg) contrast(150%)
-                             opacity(" this.successfulComboTimer "%)
-                          drop-shadow(0px 0px 20px white)"))
-    (:hoverTimer this)
-    (set! ctx.filter (str "hue-rotate(" this.hueOffset "deg) 
-                               drop-shadow(0px 0px "
-                          (/ this.hoverTimer 5)
-                          "px white) "
-                          "saturate(" this.saturation ")"))
+              (:wrongChoiceTimer this)
+              "brightness(1.0) saturate(100%) hue-rotate(65deg) 
+               contrast(150%) drop-shadow(0px 0px 0px red)"
 
-    :else (set! ctx.filter (str "hue-rotate(" this.hueOffset "deg) "
-                                "saturate(" this.saturation ")")))
-  (animation/draw-animation-physics this animation ctx)
-  (set! ctx.filter "none"))
+              (:successfulComboTimer this)
+              (str "brightness(" (+ 0.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25)) ")"
+                   "saturate(100%) hue-rotate(240deg) contrast(150%)
+                    opacity(" this.successfulComboTimer "%)
+                    drop-shadow(0px 0px 20px white)")
 
-(def rune-type {0 :earth
-                1 :wind
-                2 :tree
-                3 :rain})
+              (:hoverTimer this)
+              (str baseFilter
+                   "drop-shadow(0px 0px " (/ this.hoverTimer 5) "px white) ")
 
-(def rune-hue-rotation {0 340
-                        1 85
-                        2 180
-                        3 280})
+              :else baseFilter)]
+    (animation/draw-image-cell ctx (get-in assets/images [:runesheet :image])
+                               {:x (-> this :body :position :x)
+                                :y (-> this :body :position :y)
+                                :scale (:scale this)
+                                :rotation (-> this :body :angle)
+                                :columns 2
+                                :cell (rune-type-cell runetype)
+                                :width 32
+                                :height 32
+                                :filter runeFilter})))
 
-(def rune-saturation {0 0.9
-                      1 0.7
-                      2 1.0
-                      3 1.0})
 
 (defn create [{:keys [x y runetype]}]
   (let [body (matter/Bodies.rectangle x y 80 80)
@@ -154,8 +125,7 @@
          :hueOffset (get rune-hue-rotation runetype)
          :saturation (get rune-saturation runetype)
          :renderIndex 5
-         :scale 3}
-        (animation/play-animation (str "rune" (or runetype 0))))))
+         :scale 3})))
 
 (defn spawn-rune []
   (let [width gamestate/game-state.canvas.width

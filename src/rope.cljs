@@ -24,16 +24,24 @@
 
 (def-method render-entity :rope [{:keys [animation successfulComboTimer]
                                   :as this} ctx]
-  (let [ropeBodies (get-in this [:bodies :bodies])]
+  (let [ropeBodies (get-in this [:bodies :bodies])
+        ropeFilter (if successfulComboTimer
+                     (str
+                      "brightness("
+                      (+ 1.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
+                      ") opacity(" this.successfulComboTimer "%)")
+                     nil)]
     (doseq [rope ropeBodies]
-      (when successfulComboTimer
-        (set! ctx.filter (str
-                          "brightness("
-                          (+ 1.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
-                          ") 
-                               opacity(" this.successfulComboTimer "%)")))
-      (animation/draw-animation-physics {:body rope :scale 1.25} animation ctx)
-      (set! ctx.filter "none"))))
+      (animation/draw-image-cell ctx (get-in assets/images [:runesheet :image])
+                                 {:x (-> rope :position :x)
+                                  :y (-> rope :position :y)
+                                  :scale 1.25
+                                  :rotation (-> rope :angle)
+                                  :width 32
+                                  :height 32
+                                  :columns 2
+                                  :cell 4
+                                  :filter ropeFilter}))))
 
 (defn destroy-rope [scene {:keys [id bodies] :as rope}]
   (matter/Composite.remove scene.physics.world bodies true)
@@ -42,8 +50,8 @@
 
 (defn create [{:keys [x y target]}]
   (let [dynamicLength (+ (int
-                         (/ (util/distance x y target.body.position.x target.body.position.y) 50))
-                        1)
+                          (/ (util/distance x y target.body.position.x target.body.position.y) 50))
+                         1)
         ropeBodies (matter/Composites.stack x y 1 dynamicLength 10 10
                                             (fn [x1 y1]
                                               (matter/Bodies.rectangle
@@ -64,8 +72,7 @@
                   :id (* 200000 (js/Math.random))
                   :bodies ropeBodies
                   :renderIndex 4
-                  :scale 2}
-                 (animation/play-animation :rope))]
+                  :scale 2})]
     (matter/Composites.chain ropeBodies 0 0.5 0 -0.5 {:stiffness 0.8
                                                       :length 2})
     (matter/Composite.add ropeBodies [constraintA constraintB])
