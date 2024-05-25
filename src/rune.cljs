@@ -78,6 +78,7 @@
     (when (and (pos? body.velocity.y)
                (> body.position.y (+ heightBuffer gs.canvas.height)))
       (when (not successfulComboTimer)
+        (assets/play-audio :bomp)
         (set! scene.lives (dec scene.lives)))
       (destroy-rune scene rune))
 

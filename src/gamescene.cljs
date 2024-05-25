@@ -1,6 +1,7 @@
-(ns scene
+(ns gamescene
+  (:require-macros [macros :refer [def-method]])
   (:require
-   [gamestate :as gs]
+   [gamestate :refer [update-scene render-scene] :as gs]
    [engine.input :as input]
    [engine.assets :as assets]
    [rune :as rune]
@@ -30,7 +31,8 @@
   (context.strokeText (str "Score: " scene.score) 5 (- (get-in gs/game-state [:canvas :height]) 40))
   (context.fillText (str "Score: " scene.score) 5 (- (get-in gs/game-state [:canvas :height]) 40)))
 
-(defn scene-draw [scene context]
+(def-method render-scene :game
+  [scene context]
   (animation/draw-image context (get-in assets/images [:bg :image]) {:x 400 :y 400 :scale 1.7 :rotation 0})
   (doseq [game-obj (sort-by :renderIndex (:objects scene))]
     (gs/render-entity game-obj context))
@@ -54,7 +56,8 @@
   (when (:body obj)
     (matter/Composite.add scene.physics.world (:body obj))))
 
-(defn scene-update [scene dt]
+(def-method update-scene :game
+  [scene dt]
   (set! scene.dt (inc scene.dt))
   (doseq [game-obj (:objects scene)]
     (gs/update-entity game-obj dt))
@@ -71,6 +74,7 @@
         (= 1 (count (set runetypes)))
         (do
           (set! scene.score (+ scene.score 3))
+          (assets/play-audio :success)
           (doseq [rune activatedRunes]
             (rune/set-successful rune)))
 
@@ -79,15 +83,18 @@
         (do
           (set! scene.score (+ scene.score 6))
           (set! scene.lives (inc scene.lives))
+          (assets/play-audio :success)
           (doseq [rune activatedRunes]
             (rune/set-successful rune)))
 
         (= (count activatedRunes) (count (set runetypes)))
         nil
 
-        :else (doseq [rune activatedRunes]
-                (set! rune.wrongChoiceTimer 50)
-                (set! rune.activated false))))))
+        :else (do
+                (assets/play-audio :fail)
+                (doseq [rune activatedRunes]
+                  (set! rune.wrongChoiceTimer 50)
+                  (set! rune.activated false)))))))
 
 
 (defn mouseDown [scene world ev]
@@ -135,7 +142,6 @@
     (doseq [hoveredObject hoveredObjects]
       (case (:type hoveredObject)
         :rune (set! hoveredObject.hoverTimer 100)
-
         nil))))
 
 (defn scene1 []
@@ -157,6 +163,7 @@
                                                        {:mouse mouse
                                                         :constraint {:stiffness 0}})
         scene {:type :scene
+               :id :game
                :dt 0
                :objects []
                :score 0

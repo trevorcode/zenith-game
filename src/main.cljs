@@ -3,8 +3,8 @@
    [engine.assets :as ea]
    [assets :as assets]
    [gamestate :as gs]
-   [scene :as scene]
    [engine.input :as input]
+   [homescene :as homescene]
    ["matter-js" :as matter]))
 
 (defn create-canvas! [id w h]
@@ -25,9 +25,20 @@
 
 (defn load []
   (ea/register-audio {:fireball {:url "assets/foom_0.wav"
-                                 :type :static}})
+                                 :type :static}
+                      :success {:url "assets/success.wav"
+                                :type :static}
+                      :fail {:url "assets/fail.wav"
+                             :type :static}
+                      :bomp {:url "assets/bomp.wav"
+                             :type :static}
+                      :start {:url "assets/start.wav"
+                             :type :static}
+                      :ending {:url "assets/ending.wav"
+                             :type :static}
+                      })
   (ea/load-audios)
-  (ea/play-audio :fireball)
+  #_(ea/play-audio :fireball)
 
   (ea/register-images assets/unloaded-images)
   (ea/load-images))
@@ -35,10 +46,10 @@
 (defn draw [{:keys [canvas context currentScene]}]
   (set! (.-fillStyle context) "#f0f0e2")
   (context.fillRect 0 0 canvas.width canvas.height)
-  (scene/scene-draw currentScene context))
+  (gs/render-scene currentScene context))
 
 (defn game-update [{:keys [currentScene dt]}]
-  (scene/scene-update currentScene dt))
+  (gs/update-scene currentScene dt))
 
 (defn main-loop [game-state time]
   (set! game-state.dt (/ (- time (:lastUpdate game-state)) 1000))
@@ -48,6 +59,7 @@
   (game-update game-state)
   (draw game-state)
   (.restore (:context game-state))
+  (set! gs/game-state.mouse.mouse1 false)
 
   (js/window.requestAnimationFrame (partial main-loop game-state)))
 
@@ -60,12 +72,20 @@
     (set! gs/game-state.canvas canvas)
     (set! gs/game-state.context context)
     (-> (js/document.querySelector "#app")
-        (.append canvas)))
+        (.append canvas))
+    (canvas.addEventListener "click" (fn [{:keys [offsetX offsetY] :as event}]
+                                       (set! gs/game-state.mouse.x offsetX)
+                                       (set! gs/game-state.mouse.y offsetY)
+                                       (set! gs/game-state.mouse.mouse1 true)))
+
+    (canvas.addEventListener "mousemove" (fn [{:keys [offsetX offsetY] :as event}]
+                                           (set! gs/game-state.mouse.x offsetX)
+                                           (set! gs/game-state.mouse.y offsetY))))
 
   (load)
   (println gs/game-state)
 
-  (set! (.-currentScene gs/game-state) (scene/scene1))
+  (set! (.-currentScene gs/game-state) (homescene/create))
 
   (js/window.requestAnimationFrame (partial main-loop gs/game-state)))
 
