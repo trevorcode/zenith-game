@@ -78,7 +78,7 @@
     (when (and (pos? body.velocity.y)
                (> body.position.y (+ heightBuffer gs.canvas.height)))
       (when (not successfulComboTimer)
-        (assets/play-audio :bomp)
+        (assets/play-audio :bomp {})
         (set! scene.lives (dec scene.lives)))
       (destroy-rune scene rune))
 
@@ -101,50 +101,57 @@
                                   :as this} ctx]
   (cond
     (:activated this)
-    (do (set! ctx.filter "brightness(1.7) saturate(100%) hue-rotate(130deg) contrast(150%)
+    (set! ctx.filter "brightness(1.7) saturate(100%) hue-rotate(130deg) contrast(150%)
                           drop-shadow(0px 0px 20px yellow)")
-        (animation/draw-animation-physics this animation ctx)
-        (set! ctx.filter "none"))
 
     (:wrongChoiceTimer this)
-    (do (set! ctx.filter "brightness(1.0) saturate(100%) hue-rotate(65deg) contrast(150%)
+    (set! ctx.filter "brightness(1.0) saturate(100%) hue-rotate(65deg) contrast(150%)
                           drop-shadow(0px 0px 0px red)")
-        (animation/draw-animation-physics this animation ctx)
-        (set! ctx.filter "none"))
 
     (:successfulComboTimer this)
-    (do (set! ctx.filter (str "brightness("
-                              (+ 0.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
-                              ") 
-                              saturate(100%) hue-rotate(240deg) contrast(150%)
-                              opacity(" this.successfulComboTimer "%)
+    (set! ctx.filter (str "brightness("
+                          (+ 0.5 (js/Math.pow (- 100 this.successfulComboTimer) 0.25))
+                          ") saturate(100%) hue-rotate(240deg) contrast(150%)
+                             opacity(" this.successfulComboTimer "%)
                           drop-shadow(0px 0px 20px white)"))
-        (animation/draw-animation-physics this animation ctx)
-        (set! ctx.filter "none"))
-
-
     (:hoverTimer this)
-    (do (set! ctx.filter (str "drop-shadow(0px 0px "
-                              (/ this.hoverTimer 5)
-                              "px white)"))
-        (animation/draw-animation-physics this animation ctx)
-        (set! ctx.filter "none"))
+    (set! ctx.filter (str "hue-rotate(" this.hueOffset "deg) 
+                               drop-shadow(0px 0px "
+                          (/ this.hoverTimer 5)
+                          "px white) "
+                          "saturate(" this.saturation ")"))
 
-    :else (animation/draw-animation-physics this animation ctx)))
+    :else (set! ctx.filter (str "hue-rotate(" this.hueOffset "deg) "
+                                "saturate(" this.saturation ")")))
+  (animation/draw-animation-physics this animation ctx)
+  (set! ctx.filter "none"))
 
 (def rune-type {0 :earth
                 1 :wind
                 2 :tree
                 3 :rain})
 
+(def rune-hue-rotation {0 340
+                        1 85
+                        2 180
+                        3 280})
+
+(def rune-saturation {0 0.9
+                      1 0.7
+                      2 1.0
+                      3 1.0})
+
 (defn create [{:keys [x y runetype]}]
-  (let [body (matter/Bodies.rectangle x y 80 80)]
+  (let [body (matter/Bodies.rectangle x y 80 80)
+        runetype (or runetype 0)]
     (-> {:type :rune
          :id (* 200000 (js/Math.random))
          :body body
-         :runetype (get rune-type (or runetype 0))
+         :runetype (get rune-type runetype)
          :activated false
          :ropes []
+         :hueOffset (get rune-hue-rotation runetype)
+         :saturation (get rune-saturation runetype)
          :renderIndex 5
          :scale 3}
         (animation/play-animation (str "rune" (or runetype 0))))))

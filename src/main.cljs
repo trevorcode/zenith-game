@@ -24,21 +24,8 @@
     context))
 
 (defn load []
-  (ea/register-audio {:fireball {:url "assets/foom_0.wav"
-                                 :type :static}
-                      :success {:url "assets/success.wav"
-                                :type :static}
-                      :fail {:url "assets/fail.wav"
-                             :type :static}
-                      :bomp {:url "assets/bomp.wav"
-                             :type :static}
-                      :start {:url "assets/start.wav"
-                             :type :static}
-                      :ending {:url "assets/ending.wav"
-                             :type :static}
-                      })
+  (ea/register-audio assets/unloaded-audio)
   (ea/load-audios)
-  #_(ea/play-audio :fireball)
 
   (ea/register-images assets/unloaded-images)
   (ea/load-images))
@@ -74,16 +61,31 @@
     (-> (js/document.querySelector "#app")
         (.append canvas))
     (canvas.addEventListener "click" (fn [{:keys [offsetX offsetY] :as event}]
+                                       (event.preventDefault)
                                        (set! gs/game-state.mouse.x offsetX)
                                        (set! gs/game-state.mouse.y offsetY)
                                        (set! gs/game-state.mouse.mouse1 true)))
+
+    (canvas.addEventListener "dblclick" (fn [event]
+                                          (event.preventDefault)))
+
+    (canvas.addEventListener "touchstart" (fn [{touches :touches :as event}]
+                                            (event.preventDefault)
+                                            (let [rect (canvas.getBoundingClientRect)
+                                                  touch (first touches)
+                                                  offsetX (- touch.clientX rect.left)
+                                                  offsetY (- touch.clientY rect.top)]
+                                              (set! gs/game-state.mouse.x offsetX)
+                                              (set! gs/game-state.mouse.y offsetY)
+                                              (set! gs/game-state.mouse.mouse1 true))))
+
 
     (canvas.addEventListener "mousemove" (fn [{:keys [offsetX offsetY] :as event}]
                                            (set! gs/game-state.mouse.x offsetX)
                                            (set! gs/game-state.mouse.y offsetY))))
 
+
   (load)
-  (println gs/game-state)
 
   (set! (.-currentScene gs/game-state) (homescene/create))
 

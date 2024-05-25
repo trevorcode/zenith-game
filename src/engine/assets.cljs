@@ -26,10 +26,9 @@
        (into {})
        (set! images)))
 
-(defn load-audio [{:keys [url type]}]
+(defn load-audio [{:keys [url type volume]}]
   (let [audio (-> (new js/Audio)
                   (assoc! :src url)
-                  (assoc! :volume 1.0)
                   (assoc! :preload "auto")
                   (assoc! :controls false)
                   (assoc! :currentTime 0)
@@ -43,5 +42,8 @@
        (into {})
        (set! audio)))
 
-(defn play-audio [audio-kw]
-  (.play (.cloneNode (get-in audio [audio-kw :audio]))))
+(defn play-audio [audio-kw {:keys [volume]}]
+  (let [audio-asset (get audio audio-kw)
+        audio (.cloneNode (get audio-asset :audio))]
+    (set! audio.volume (or volume (:volume audio-asset) 1.0))
+    (.play audio)))

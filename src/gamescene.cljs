@@ -5,11 +5,14 @@
    [engine.input :as input]
    [engine.assets :as assets]
    [rune :as rune]
-
    [ceiling :as ceiling]
    [rope :as rope]
+   [button :as button]
+   [uiutils :as ui]
    ["matter-js" :as matter]
-   [engine.animation :as animation]))
+   [engine.animation :as animation]
+   [engine.assets :as ea]
+   [homescene :as homescene]))
 
 (defn draw-heart [ctx x y]
   (let [image (get-in assets/images [:heart :image])]
@@ -47,7 +50,24 @@
       (context.lineTo (:x mousePosition) (:y mousePosition))
       (context.stroke)))
   (draw-life scene context)
-  (draw-score scene context))
+  (draw-score scene context)
+
+  (when scene.gameOver
+    (ui/draw-card context)
+    (set! context.font "38px Arial")
+    (set! context.textAlign "center")
+    (set! context.textBaseline "middle")
+    (set! context.fillStyle "black")
+    (context.fillText "Game Over"
+                      (/ (-> gs/game-state :canvas :width) 2)
+                      (- (/ (-> gs/game-state :canvas :width) 2) 240))
+
+    (set! context.font "32px Arial")
+    (context.fillText (str "Score: " scene.score)
+                      (/ (-> gs/game-state :canvas :width) 2)
+                      (- (/ (-> gs/game-state :canvas :width) 2) 190))
+    (doseq [game-obj (:ui scene)]
+      (gs/render-entity game-obj context))))
 
 (defn register-obj [scene obj]
   (conj! scene.objects obj)
@@ -56,14 +76,44 @@
   (when (:body obj)
     (matter/Composite.add scene.physics.world (:body obj))))
 
+(declare scene1)
 (def-method update-scene :game
   [scene dt]
-  (set! scene.dt (inc scene.dt))
-  (doseq [game-obj (:objects scene)]
-    (gs/update-entity game-obj dt))
+  (when (and (<= scene.lives 0)
+             (= scene.gameOver false))
+    (matter/Runner.stop scene.runner)
+    (set! scene.gameOver true)
+    (ea/play-audio :ending {})
+    (->> (button/create {:x (/ (-> gs/game-state :canvas :width) 2)
+                         :y (/ (-> gs/game-state :canvas :height) 2)
+                         :width 170
+                         :height 70
+                         :text "Play again"
+                         :action (fn []
+                                   (set! (.-currentScene gs/game-state) (scene1))
+                                   (assets/play-audio :start {}))})
 
-  (when (> (* (js/Math.random) 1000) 997)
-    (register-obj scene (rune/spawn-rune))))
+         (conj! scene.ui))
+    (->> (button/create {:x (/ (-> gs/game-state :canvas :width) 2)
+                         :y (+ (/ (-> gs/game-state :canvas :height) 2) 84)
+                         :width 170
+                         :height 70
+                         :text "Home"
+                         :action (fn []
+                                   (set! (.-currentScene gs/game-state) (homescene/create)))})
+
+         (conj! scene.ui)))
+
+  (set! scene.dt (inc scene.dt))
+  (if scene.gameOver
+    (do (doseq [game-obj (:ui scene)]
+          (gs/update-entity game-obj dt)))
+    (do
+      (doseq [game-obj (:objects scene)]
+        (gs/update-entity game-obj dt))
+
+      (when (> (* (js/Math.random) 1000) 997)
+        (register-obj scene (rune/spawn-rune))))))
 
 (defn calculate-points [scene]
   (let [activatedRunes (filterv #(and (= :rune (:type %))
@@ -74,7 +124,7 @@
         (= 1 (count (set runetypes)))
         (do
           (set! scene.score (+ scene.score 3))
-          (assets/play-audio :success)
+          (assets/play-audio :success {})
           (doseq [rune activatedRunes]
             (rune/set-successful rune)))
 
@@ -83,7 +133,7 @@
         (do
           (set! scene.score (+ scene.score 6))
           (set! scene.lives (inc scene.lives))
-          (assets/play-audio :success)
+          (assets/play-audio :success {})
           (doseq [rune activatedRunes]
             (rune/set-successful rune)))
 
@@ -91,7 +141,7 @@
         nil
 
         :else (do
-                (assets/play-audio :fail)
+                (assets/play-audio :fail {})
                 (doseq [rune activatedRunes]
                   (set! rune.wrongChoiceTimer 50)
                   (set! rune.activated false)))))))
@@ -120,9 +170,10 @@
     (doseq [clickedObject clickedObjects]
       (case (:type clickedObject)
         :rune (do
-                (set! clickedObject.activated (not clickedObject.activated))
-                (matter/Body.setVelocity clickedObject.body {:x 0 :y -2})
-                (calculate-points scene))
+                (when (not clickedObject.successfulComboTimer)
+                  (set! clickedObject.activated (not clickedObject.activated))
+                  (matter/Body.setVelocity clickedObject.body {:x 0 :y -2})
+                  (calculate-points scene)))
 
         :ceiling (when scene.selectedRune
                    (register-obj scene (rope/create {:x ev.mouse.position.x
@@ -144,16 +195,23 @@
         :rune (set! hoveredObject.hoverTimer 100)
         nil))))
 
-(defn scene1 []
+(defn onCollisionStart [scene ev]
+  (let [runes (filterv #(= :rune (:type %)) scene.objects)
+        collidedPairs (filterv
+                       (fn [obj]
+                         (some #(or (= (:bodyA %) (:body obj))
+                                    (= (:bodyB %) (:body obj))) ev.pairs))
+                       runes)]
+    (when (= 2 (count collidedPairs))
+      (doseq [rune runes]
+        (when (> rune.body.speed 2)
+          (ea/play-audio (str "rockCollide" (int (+ 1 (* (js/Math.random) 3))))
+                         {:volume (min 1.0
+                                       (/ rune.body.speed 8))}))))))
 
-  (let [engine (let [engine (matter/Engine.create)
-                     ground (matter/Bodies.rectangle 400 610 810 90 {:isStatic true})
-                     #_#_render (matter/Render.create {:element js/document.body
-                                                       :engine engine})]
-                 #_(matter/Composite.add engine.world ground)
-                 #_(matter/Render.run render)
-                 (matter/Runner.run (matter/Runner.create) engine)
-                 engine)
+(defn scene1 []
+  (let [engine (matter/Engine.create)
+        runner (matter/Runner.create)
         objects (into [(rune/create {:x 300 :y 50 :rotation 10})
                        (rune/create {:x 400 :y 80 :rotation 90})
                        (rune/create {:x 450 :y 80 :rotation 90})
@@ -166,16 +224,21 @@
                :id :game
                :dt 0
                :objects []
+               :ui []
                :score 0
                :lives 3
+               :gameOver false
                :mouse mouseConstraint
-               :physics engine}]
+               :physics engine
+               :runner runner}]
 
-    (set! engine.gravity.y 0.4)
+    (matter/Runner.run runner engine)
+    (set! engine.gravity.y 0.25)
     (matter/Composite.add engine.world mouseConstraint)
     (matter/Events.on mouseConstraint "mousedown" (partial mouseDown scene engine.world))
     (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene engine.world))
     (matter/Events.on mouseConstraint "mousemove" (partial mouseMove scene))
+    (matter/Events.on engine "collisionStart" (partial onCollisionStart scene))
     (doseq [obj objects]
       (register-obj scene obj))
     scene))

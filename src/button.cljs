@@ -27,15 +27,16 @@
   (when (buttonClicked? button)
     ((:action button)))
 
+  (set! button.state :waiting)
   (when (hover? button)
-    (println "hover")))
+    (set! button.state :hover)))
 
 (def-method render-entity :button [{:keys [x y width height
-                                           state text
-                                           text-offset-x
-                                           text-offset-y]
+                                           state text]
                                     :as button} ctx]
   (set! ctx.fillStyle "#A8C8A6")
+  (when (= :hover button.state)
+    (set! ctx.fillStyle "#B8D8B6"))
   (ctx.fillRect  (- x (/ width 2))
                  (- y (/ height 2))
                  width
