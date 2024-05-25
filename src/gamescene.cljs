@@ -180,8 +180,7 @@
                   (set! rune.wrongChoiceTimer 50)
                   (set! rune.activated false)))))))
 
-
-(defn mouseDown [scene world ev]
+(defn mouseDown [scene ev]
   (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
         clickedObjects (filterv
                         (fn [obj]
@@ -193,7 +192,7 @@
         :rune (set! scene.selectedRune clickedObject)
         nil))))
 
-(defn mouseUp [scene world ev]
+(defn mouseUp [scene ev]
   (let [objectBodies (filterv some? (mapv #(get % :body) scene.objects))
         clickedObjects (filterv
                         (fn [obj]
@@ -225,7 +224,11 @@
     (doseq [hoveredObject hoveredObjects]
       (case (:type hoveredObject)
         :rune (set! hoveredObject.hoverTimer 100)
-        nil))))
+        nil)))
+
+  (let [mouse-y (-> ev :mouse :position :y)]
+    (when (< mouse-y 60)
+      (matter/Events.trigger scene.mouse "mouseup" ev))))
 
 (defn onCollisionStart [scene ev]
   (let [runes (filterv #(= :rune (:type %)) scene.objects)
@@ -265,8 +268,8 @@
     (matter/Runner.run runner engine)
     (set! engine.gravity.y 0.2)
     (matter/Composite.add engine.world mouseConstraint)
-    (matter/Events.on mouseConstraint "mousedown" (partial mouseDown scene engine.world))
-    (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene engine.world))
+    (matter/Events.on mouseConstraint "mousedown" (partial mouseDown scene))
+    (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene))
     (matter/Events.on mouseConstraint "mousemove" (partial mouseMove scene))
     (matter/Events.on engine "collisionStart" (partial onCollisionStart scene))
     (doseq [obj objects]

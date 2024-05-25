@@ -46,7 +46,6 @@
   (ctx.fill)
 
   (set! ctx.fillStyle "black")
-
   (set! ctx.font "24px Arial")
   (set! ctx.textAlign "center")
   (set! ctx.textBaseline "middle")
