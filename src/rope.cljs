@@ -68,11 +68,11 @@
                                                :bodyB (:body target)
                                                :stiffness 0.5
                                                :length 3})
-        rope (-> {:type :rope
-                  :id (* 200000 (js/Math.random))
-                  :bodies ropeBodies
-                  :renderIndex 4
-                  :scale 2})]
+        rope {:type :rope
+              :id (* 200000 (js/Math.random))
+              :bodies ropeBodies
+              :renderIndex 4
+              :scale 2}]
     (matter/Composites.chain ropeBodies 0 0.5 0 -0.5 {:stiffness 0.8
                                                       :length 2})
     (matter/Composite.add ropeBodies [constraintA constraintB])

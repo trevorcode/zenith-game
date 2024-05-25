@@ -1,5 +1,4 @@
-(ns assets
-  (:require [engine.assets :as ea]))
+(ns assets)
 
 (def unloaded-images {:zenith {:type :single
                                :url "assets/zenith.png"}

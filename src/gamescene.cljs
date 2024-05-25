@@ -2,7 +2,6 @@
   (:require-macros [macros :refer [def-method]])
   (:require
    [gamestate :refer [update-scene render-scene] :as gs]
-   [engine.input :as input]
    [engine.assets :as assets]
    [rune :as rune]
    [ceiling :as ceiling]

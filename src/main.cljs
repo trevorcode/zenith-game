@@ -3,7 +3,6 @@
    [engine.assets :as ea]
    [assets :as assets]
    [gamestate :as gs]
-   [engine.input :as input]
    [homescene :as homescene]
    ["matter-js" :as matter]))
 

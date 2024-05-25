@@ -116,16 +116,16 @@
 (defn create [{:keys [x y runetype]}]
   (let [body (matter/Bodies.rectangle x y 80 80)
         runetype (or runetype 0)]
-    (-> {:type :rune
-         :id (* 200000 (js/Math.random))
-         :body body
-         :runetype (get rune-type runetype)
-         :activated false
-         :ropes []
-         :hueOffset (get rune-hue-rotation runetype)
-         :saturation (get rune-saturation runetype)
-         :renderIndex 5
-         :scale 3})))
+    {:type :rune
+     :id (* 200000 (js/Math.random))
+     :body body
+     :runetype (get rune-type runetype)
+     :activated false
+     :ropes []
+     :hueOffset (get rune-hue-rotation runetype)
+     :saturation (get rune-saturation runetype)
+     :renderIndex 5
+     :scale 3}))
 
 (defn spawn-rune []
   (let [width gamestate/game-state.canvas.width
