@@ -9,6 +9,7 @@
    [rope :as rope]
    [button :as button]
    [uiutils :as ui]
+   [util :as util]
    ["matter-js" :as matter]
    [engine.animation :as animation]
    [engine.assets :as ea]
@@ -77,42 +78,76 @@
     (matter/Composite.add scene.physics.world (:body obj))))
 
 (declare scene1)
+(defn init-game-over [scene]
+  (matter/Runner.stop scene.runner)
+  (set! scene.gameOver true)
+  (ea/play-audio :ending {})
+  (->> (button/create {:x (/ (-> gs/game-state :canvas :width) 2)
+                       :y (/ (-> gs/game-state :canvas :height) 2)
+                       :width 170
+                       :height 70
+                       :text "Play again"
+                       :action (fn []
+                                 (set! (.-currentScene gs/game-state) (scene1))
+                                 (assets/play-audio :start {}))})
+
+       (conj! scene.ui))
+  (->> (button/create {:x (/ (-> gs/game-state :canvas :width) 2)
+                       :y (+ (/ (-> gs/game-state :canvas :height) 2) 84)
+                       :width 170
+                       :height 70
+                       :text "Home"
+                       :action (fn []
+                                 (set! (.-currentScene gs/game-state) (homescene/create)))})
+
+       (conj! scene.ui)))
+
+(defn nextSpawnTime [gameTime]
+  (let [doubleSpawn? (= 0 (util/random-between-int 0 5))]
+    (if doubleSpawn?
+      0.5
+      (cond
+        (> gameTime 270)
+        (util/random-between 0.5 1.5)
+
+        (> gameTime 240)
+        (util/random-between 0.5 2)
+
+        (> gameTime 210)
+        (util/random-between 0.5 3)
+
+        (> gameTime 180)
+        (util/random-between 1 3)
+
+        (> gameTime 120)
+        (util/random-between 1 4)
+
+        (> gameTime 60)
+        (util/random-between 2 5)
+
+        (> gameTime 30)
+        (util/random-between 2.5 6)
+
+        :else
+        (util/random-between 3 7)))))
+
 (def-method update-scene :game
   [scene dt]
   (when (and (<= scene.lives 0)
              (= scene.gameOver false))
-    (matter/Runner.stop scene.runner)
-    (set! scene.gameOver true)
-    (ea/play-audio :ending {})
-    (->> (button/create {:x (/ (-> gs/game-state :canvas :width) 2)
-                         :y (/ (-> gs/game-state :canvas :height) 2)
-                         :width 170
-                         :height 70
-                         :text "Play again"
-                         :action (fn []
-                                   (set! (.-currentScene gs/game-state) (scene1))
-                                   (assets/play-audio :start {}))})
+    (init-game-over scene))
 
-         (conj! scene.ui))
-    (->> (button/create {:x (/ (-> gs/game-state :canvas :width) 2)
-                         :y (+ (/ (-> gs/game-state :canvas :height) 2) 84)
-                         :width 170
-                         :height 70
-                         :text "Home"
-                         :action (fn []
-                                   (set! (.-currentScene gs/game-state) (homescene/create)))})
-
-         (conj! scene.ui)))
-
-  (set! scene.dt (inc scene.dt))
   (if scene.gameOver
-    (do (doseq [game-obj (:ui scene)]
-          (gs/update-entity game-obj dt)))
+    (doseq [game-obj (:ui scene)]
+      (gs/update-entity game-obj dt))
     (do
+      (set! scene.gameTime (+ scene.gameTime dt))
       (doseq [game-obj (:objects scene)]
         (gs/update-entity game-obj dt))
 
-      (when (> (* (js/Math.random) 1000) 997)
+      (set! scene.nextSpawn (- scene.nextSpawn dt))
+      (when (<= scene.nextSpawn 0)
+        (set! scene.nextSpawn (nextSpawnTime scene.gameTime))
         (register-obj scene (rune/spawn-rune))))))
 
 (defn calculate-points [scene]
@@ -156,8 +191,7 @@
                         scene.objects)]
     (doseq [clickedObject clickedObjects]
       (case (:type clickedObject)
-        :rune (do
-                (set! scene.selectedRune clickedObject))
+        :rune (set! scene.selectedRune clickedObject)
         nil))))
 
 (defn mouseUp [scene world ev]
@@ -169,11 +203,10 @@
                         scene.objects)]
     (doseq [clickedObject clickedObjects]
       (case (:type clickedObject)
-        :rune (do
-                (when (not clickedObject.successfulComboTimer)
-                  (set! clickedObject.activated (not clickedObject.activated))
-                  (matter/Body.setVelocity clickedObject.body {:x 0 :y -2})
-                  (calculate-points scene)))
+        :rune (when (not clickedObject.successfulComboTimer)
+                (set! clickedObject.activated (not clickedObject.activated))
+                (matter/Body.setVelocity clickedObject.body {:x 0 :y -2})
+                (calculate-points scene))
 
         :ceiling (when scene.selectedRune
                    (register-obj scene (rope/create {:x ev.mouse.position.x
@@ -205,35 +238,33 @@
     (when (= 2 (count collidedPairs))
       (doseq [rune runes]
         (when (> rune.body.speed 2)
-          (ea/play-audio (str "rockCollide" (int (+ 1 (* (js/Math.random) 3))))
+          (ea/play-audio (str "rockCollide" (util/random-between-int 1 4))
                          {:volume (min 1.0
                                        (/ rune.body.speed 8))}))))))
 
 (defn scene1 []
   (let [engine (matter/Engine.create)
         runner (matter/Runner.create)
-        objects (into [(rune/create {:x 300 :y 50 :rotation 10})
-                       (rune/create {:x 400 :y 80 :rotation 90})
-                       (rune/create {:x 450 :y 80 :rotation 90})
-                       (ceiling/create)])
+        objects [(ceiling/create)]
         mouse (matter/Mouse.create (:canvas gs/game-state))
         mouseConstraint (matter/MouseConstraint.create engine
                                                        {:mouse mouse
                                                         :constraint {:stiffness 0}})
         scene {:type :scene
                :id :game
-               :dt 0
+               :gameTime 0
                :objects []
                :ui []
                :score 0
                :lives 3
+               :nextSpawn 3.5
                :gameOver false
                :mouse mouseConstraint
                :physics engine
                :runner runner}]
 
     (matter/Runner.run runner engine)
-    (set! engine.gravity.y 0.25)
+    (set! engine.gravity.y 0.2)
     (matter/Composite.add engine.world mouseConstraint)
     (matter/Events.on mouseConstraint "mousedown" (partial mouseDown scene engine.world))
     (matter/Events.on mouseConstraint "mouseup" (partial mouseUp scene engine.world))

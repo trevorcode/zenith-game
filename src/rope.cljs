@@ -1,6 +1,6 @@
 (ns rope
   (:require-macros [macros :refer [def-method]])
-  (:require [engine.animation :refer [draw-image draw-image-physics] :as animation]
+  (:require [engine.animation :as animation]
             [engine.assets :as assets]
             [gamestate :refer [render-entity update-entity]]
             [util :as util]
@@ -41,10 +41,10 @@
         (filterv #(not= (:id %) id) scene.objects)))
 
 (defn create [{:keys [x y target]}]
-  (let [randomLength (+ (int
+  (let [dynamicLength (+ (int
                          (/ (util/distance x y target.body.position.x target.body.position.y) 50))
                         1)
-        ropeBodies (matter/Composites.stack x y 1 randomLength 10 10
+        ropeBodies (matter/Composites.stack x y 1 dynamicLength 10 10
                                             (fn [x1 y1]
                                               (matter/Bodies.rectangle
                                                x1 y1 5 30 {:collisionFilter {:mask 0}})))

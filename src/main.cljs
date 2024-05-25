@@ -66,8 +66,9 @@
                                        (set! gs/game-state.mouse.y offsetY)
                                        (set! gs/game-state.mouse.mouse1 true)))
 
-    (canvas.addEventListener "dblclick" (fn [event]
-                                          (event.preventDefault)))
+    (canvas.addEventListener "dblclick" (fn [event] (event.preventDefault)))
+    (canvas.addEventListener "contextmenu" (fn [event] (event.preventDefault)))
+    (canvas.addEventListener "onselectstart" (fn [event] (event.preventDefault)))
 
     (canvas.addEventListener "touchstart" (fn [{touches :touches :as event}]
                                             (event.preventDefault)

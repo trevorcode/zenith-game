@@ -1,7 +1,6 @@
 (ns ceiling
   (:require-macros [macros :refer [def-method]])
-  (:require [engine.animation :refer [draw-image draw-image-physics]]
-            [engine.assets :as assets]
+  (:require [engine.assets :as assets]
             [gamestate :refer [render-entity update-entity]]
             ["matter-js" :as matter]))
 

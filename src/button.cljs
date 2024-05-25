@@ -35,12 +35,15 @@
                                            state text]
                                     :as button} ctx]
   (set! ctx.fillStyle "#A8C8A6")
-  (when (= :hover button.state)
+  (when (= :hover state)
     (set! ctx.fillStyle "#B8D8B6"))
-  (ctx.fillRect  (- x (/ width 2))
-                 (- y (/ height 2))
-                 width
-                 height)
+  (ctx.beginPath)
+  (ctx.roundRect  (- x (/ width 2))
+                  (- y (/ height 2))
+                  width
+                  height
+                  [10])
+  (ctx.fill)
 
   (set! ctx.fillStyle "black")
 

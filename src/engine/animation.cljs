@@ -11,9 +11,6 @@
 (defn get-cell-x-y [cell columns]
   [(int (/ cell columns)) (mod cell columns)])
 
-(defn get-frame-x-y [frame columns]
-  [(int (/ frame columns)) (mod frame columns)])
-
 (defn step-animation
   [{:keys [duration
            durationCounter] :as animation}]
@@ -40,18 +37,6 @@
 (defn play-animation [entity animation]
   (assoc! entity :animation (merge {} (get animations animation))))
 
-(defn draw-animation
-  [{{:keys [x y rotation scale]} :transform}
-   {:keys [sheet] :as animation}
-   ctx]
-  (let [image (get-in images [sheet :image])]
-    (ctx.setTransform scale 0 0 scale x y)
-    (when rotation
-      (ctx.rotate rotation))
-    (draw-frame ctx image animation)
-    (ctx.setTransform 1 0 0 1 0 0)
-    (step-animation animation)))
-
 (defn draw-animation-physics
   [{{{x :x y :y} :position
      angle :angle} :body
@@ -70,6 +55,23 @@
   (when rotation
     (ctx.rotate rotation))
   (ctx.drawImage image (/ (- image.width) 2) (/ (- image.height) 2))
+  (ctx.setTransform 1 0 0 1 0 0))
+
+(defn draw-image-cell [ctx image {:keys [x y rotation scale
+                                         width height columns cell]}]
+  (ctx.setTransform scale 0 0 scale x y)
+  (when rotation
+    (ctx.rotate rotation))
+  (let [[frame-x frame-y] (get-cell-x-y (or cell 0) (or columns 1))]
+    (ctx.drawImage image
+                   (* frame-y width)
+                   (* frame-x height)
+                   width
+                   height
+                   (/ (- width) 2)
+                   (/ (- height) 2)
+                   width
+                   height))
   (ctx.setTransform 1 0 0 1 0 0))
 
 (defn draw-image-physics [ctx image {{{x :x y :y} :position

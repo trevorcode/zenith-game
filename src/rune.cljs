@@ -1,9 +1,10 @@
 (ns rune
   (:require-macros [macros :refer [def-method]])
-  (:require [engine.animation :refer [draw-image draw-image-physics] :as animation]
+  (:require [engine.animation :as animation]
             [engine.assets :as assets]
             [gamestate :refer [render-entity update-entity] :as gamestate]
             [rope :as rope]
+            [util :as util]
             ["matter-js" :as matter]))
 
 (assets/register-animations
@@ -159,10 +160,10 @@
 (defn spawn-rune []
   (let [width gamestate/game-state.canvas.width
         height gamestate/game-state.canvas.height
-        rune (create {:x (* (js/Math.random) width)
+        rune (create {:x (util/random-between 0 width)
                       :y height
-                      :runetype (int (* (js/Math.random) 4))})
-        vx (/ (- (/ width 2) rune.body.position.x) (/ width 21))]
+                      :runetype (js/Math.floor (util/random-between 0 4))})
+        vx (/ (- (/ width 2) rune.body.position.x) (/ width (util/random-between 0 21)))]
 
-    (matter/Body.setVelocity rune.body {:x vx :y -13})
+    (matter/Body.setVelocity rune.body {:x vx :y -11})
     rune))
